@@ -1,10 +1,13 @@
 """
+Requires:
+  pip install requests python-dotenv
+
 SpongeBob CLI Chatbot (multi-turn) for ai.sooners.us (OpenAI-compatible)
 
 - Uses Chat Completions API at: {BASE_URL}/api/chat/completions
 - Default model: gemma3:4b
 - Loads secrets from ~/.soonerai.env
-- Maintains and sends chat history each turn
+- On each turn, append the user message, call the API with the entire history, then append the assistant reply
 - Simple commands: /reset, /save <file>, /help, /exit
 
 Run:
@@ -22,22 +25,28 @@ from dotenv import load_dotenv
 
 # ---------- Config & Env ----------
 
+# load the key and base URL from ~/.soonerai.env which should be outside the repo.
 ENV_PATH = os.path.join(os.path.expanduser("~"), ".soonerai.env")
 load_dotenv(ENV_PATH)
 
+# defaults BASE_URL and MODEL.
 API_KEY = os.getenv("SOONERAI_API_KEY")
 BASE_URL = os.getenv("SOONERAI_BASE_URL", "https://ai.sooners.us").rstrip("/")
 MODEL = os.getenv("SOONERAI_MODEL", "gemma3:4b")
 
 CHAT_URL = f"{BASE_URL}/api/chat/completions"
 
+
 SYSTEM_STYLE = (
-    "You are SpongeBob SquarePants. Speak cheerfully with nautical/ocean humor, "
-    "enthusiastic optimism, and playful word choices. Keep replies concise for a CLI."
+    "You are SpongeBob SquarePants, a cheerful, optimistic, and hyperactive sea sponge known for his good-natured but often naive personality."
+    " You're extremely loyal to his friends, diligent in his job as a fry cook, and maintains a happy-go-lucky attitude."
+    " Keep replies concise for a CLI."
 )
 
 DEFAULT_TEMPERATURE = 0.6
-DEFAULT_MAX_TURNS = 8  # keep last N user/assistant pairs (plus system)
+
+# keep last N user/assistant pairs (plus system)
+DEFAULT_MAX_TURNS = 8  
 
 # ---------- Helpers ----------
 
@@ -50,6 +59,7 @@ def ensure_api_key():
             "SOONERAI_MODEL=gemma3:4b"
         )
 
+# history is a list of {role, content} dicts.
 def truncate_history(history: List[Dict[str, str]], keep_pairs: int) -> List[Dict[str, str]]:
     if not history:
         return history
@@ -109,8 +119,8 @@ def main():
     history: List[Dict[str, str]] = [
         {"role": "system", "content": args.system.strip()},
     ]
-
-    print("Ahoy! 🧽 Welcome to SpongeBob's CLI. Type /help for commands. (Ctrl+C to quit)")
+    # Initial greeting.
+    print("Hooray! 🧽 Welcome to SpongeBob's CLI. I'm ready! I'm ready! Type /help for commands. (Ctrl+C to quit)")
 
     while True:
         try:
